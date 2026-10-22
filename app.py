@@ -5,9 +5,10 @@ import sys, pathlib, os
 ROOT = pathlib.Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 
-# Load .env BEFORE any backend import so GEMINI_API_KEY is in os.environ
+# Load .env for local dev. On Streamlit Cloud secrets are already in os.environ
+# so we do NOT override — cloud values take precedence.
 from dotenv import load_dotenv
-load_dotenv(ROOT / ".env", override=True)
+load_dotenv(ROOT / ".env", override=False)
 
 # Execute frontend/app.py in this scope so Streamlit sees
 # set_page_config and all widgets at the top level

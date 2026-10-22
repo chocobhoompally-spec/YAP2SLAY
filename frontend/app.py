@@ -13,8 +13,9 @@ from zoneinfo import ZoneInfo
 import streamlit as st
 from dotenv import load_dotenv
 
-# Load .env from project root regardless of working directory
-load_dotenv(pathlib.Path(__file__).parent.parent / ".env", override=True)
+# Load .env for local dev. On Streamlit Cloud secrets are already in os.environ
+# so we do NOT override — cloud values take precedence.
+load_dotenv(pathlib.Path(__file__).parent.parent / ".env", override=False)
 
 from backend import assistant, db
 
