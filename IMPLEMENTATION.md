@@ -559,3 +559,58 @@ Likely sources: Gemini function-calling setup, SDK or model name changes, Stream
 - [ ] Submitted before the internal deadline
 
 > When in doubt: **working demo > clean repo > extra features.**
+## Backend implementation status
+
+### Architecture
+
+The backend uses Python, Google Gemini through `google-genai`, SQLite, `python-dotenv`, and pytest. The Streamlit frontend is owned by Person 2 and imports backend functions directly. No REST API is required.
+
+### Backend modules
+
+- `backend/db.py`: SQLite database, task and schedule storage, action history, and frontend read functions.
+- `backend/scheduler.py`: timezone-aware scheduling in 30-minute slots, task urgency, deadlines, and reporting work that does not fit.
+- `backend/scheduler_service.py`: input validation, database updates, availability changes, and schedule rebuilding.
+- `backend/tools.py`: functions Gemini can call to create and update tasks, manage availability, record progress, and rebuild schedules.
+- `backend/assistant.py`: Gemini conversation and tool integration, with handling for missing credentials and API errors.
+- `backend/gemini_smoke.py`: script for testing Gemini API connectivity and model functionality.
+- `backend/tests/test_backend.py`: backend automated tests.
+
+### Setup and verification
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+pytest -q
+```
+
+Add a valid Google AI Studio API key to `.env` as `GEMINI_API_KEY`. The `.env` file must not be committed to GitHub.
+
+The optional environment variables are `GEMINI_MODEL`, `TIMEZONE` (default `Asia/Kolkata`), and `DB_PATH` (default `planner.db`).
+
+Once Person 2 adds `app.py`, launch the frontend using:
+
+```bash
+streamlit run app.py
+```
+
+### Frontend integration contract
+
+Person 2 can import the backend using `from backend import assistant, db`.
+
+- `db.init()` initializes the database.
+- `assistant.new_chat()` creates a conversation.
+- `assistant.send(chat, message)` returns a reply and action history.
+- `db.list_tasks()` returns task records.
+- `db.get_blocks()` returns scheduled blocks.
+- `db.actions_since(id)` returns recent actions.
+- `db.reset()` resets planner data.
+
+### Current limitations
+
+The scheduler only uses availability entered by the student. Scheduling operates in 30-minute increments, so a final block can exceed the exact remaining effort. Relative dates depend on Gemini's interpretation, and ambiguous inputs may need clarification. The frontend is not included until Person 2 integrates it.
+
+### Verification
+
+The backend implementation was reported to pass 10 automated tests. Run `pytest -q` locally to verify the current checkout before relying on this status.

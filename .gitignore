@@ -1,0 +1,9 @@
+.env
+planner.db
+*.sqlite
+*.sqlite3
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
