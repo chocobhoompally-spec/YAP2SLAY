@@ -11,24 +11,10 @@ from collections import defaultdict
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-# ── ensure project root is on path ───────────────────────────────────────────
+# ensure project root on path when run via runpy
 _ROOT = pathlib.Path(__file__).parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
-
-# ── load secrets / env BEFORE any backend import ─────────────────────────────
-# 1. Streamlit Cloud: copy st.secrets into os.environ
-try:
-    import streamlit as _st
-    for _k, _v in _st.secrets.items():
-        if isinstance(_v, str) and _k not in os.environ:
-            os.environ[_k] = _v
-except Exception:
-    pass  # local dev — st.secrets not available yet
-
-# 2. Local dev: load .env (does not override values already set above)
-from dotenv import load_dotenv
-load_dotenv(_ROOT / ".env", override=False)
 
 import streamlit as st
 
