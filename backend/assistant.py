@@ -104,18 +104,48 @@ def _safe_diagnostic(stage: str, exc: Exception) -> str:
 
 
 def _setting(name: str, default: str = "") -> str:
-    """Read environment/.env settings first, then Streamlit Cloud secrets."""
+    """Read Streamlit secrets before environment/.env values.
+
+    For the Gemini key, the order is Streamlit GEMINI_API_KEY, Streamlit
+    GOOGLE_API_KEY, environment GEMINI_API_KEY, then environment GOOGLE_API_KEY.
+    Thus an explicitly configured Streamlit secret cannot be shadowed by a
+    stale process variable.
+    """
+    try:
+        import streamlit as st
+    except Exception:
+        # Outside Streamlit there may be no secrets.toml or Streamlit runtime.
+        st = None
+
+    def secret_value(setting_name: str) -> str:
+        if st is None:
+            return ""
+        try:
+            value = st.secrets.get(setting_name, "")
+            return str(value).strip() if value is not None else ""
+        except Exception:
+            return ""
+
+    value = secret_value(name)
+    if value:
+        return value
+    if name == "GEMINI_API_KEY":
+        # Streamlit configuration is authoritative over inherited process
+        # variables, including deployments still using the legacy key name.
+        value = secret_value("GOOGLE_API_KEY")
+        if value:
+            return value
     value = os.getenv(name, "").strip()
     if value:
         return value
-    try:
-        import streamlit as st
 
-        value = st.secrets.get(name, default)
-        return str(value).strip() if value is not None else default
-    except Exception:
-        # Outside Streamlit there may be no secrets.toml or Streamlit runtime.
-        return default
+    if name == "GEMINI_API_KEY":
+        # Environment fallback for local setups using Google's conventional
+        # name. A canonical environment key always takes precedence here.
+        value = os.getenv("GOOGLE_API_KEY", "").strip()
+        if value:
+            return value
+    return default
 
 
 class _UnavailableChat:

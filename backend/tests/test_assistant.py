@@ -1,3 +1,6 @@
+import sys
+from types import SimpleNamespace
+
 from backend import assistant
 
 
@@ -77,6 +80,41 @@ def test_client_uses_gemini_api_even_when_vertex_environment_flags_are_set(monke
     assert client is not None
     assert client._api_client.vertexai is False
     assert client._api_client._http_options.base_url == "https://generativelanguage.googleapis.com/"
+
+
+def test_streamlit_gemini_secret_wins_over_stale_environment_key(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "stale-environment-key")
+    monkeypatch.setenv("GOOGLE_API_KEY", "unrelated-google-key")
+    monkeypatch.setitem(
+        sys.modules,
+        "streamlit",
+        SimpleNamespace(secrets={"GEMINI_API_KEY": "intended-streamlit-key"}),
+    )
+
+    assert assistant._setting("GEMINI_API_KEY") == "intended-streamlit-key"
+
+
+def test_google_api_key_is_only_a_fallback(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setenv("GOOGLE_API_KEY", "legacy-google-key")
+    monkeypatch.setitem(
+        sys.modules,
+        "streamlit",
+        SimpleNamespace(secrets={}),
+    )
+
+    assert assistant._setting("GEMINI_API_KEY") == "legacy-google-key"
+
+
+def test_streamlit_google_secret_fallback_wins_over_stale_environment(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "stale-environment-key")
+    monkeypatch.setitem(
+        sys.modules,
+        "streamlit",
+        SimpleNamespace(secrets={"GOOGLE_API_KEY": "configured-google-secret"}),
+    )
+
+    assert assistant._setting("GEMINI_API_KEY") == "configured-google-secret"
 
 
 def test_chat_creation_failure_is_logged(monkeypatch, capsys):

@@ -12,7 +12,7 @@ def main() -> int:
     project_root = Path(__file__).resolve().parents[1]
     load_dotenv(dotenv_path=project_root / ".env")
 
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
     model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash").strip()
     if not api_key:
         print("Gemini smoke test not run: GEMINI_API_KEY is missing. Set it in the project .env file.")
@@ -24,7 +24,7 @@ def main() -> int:
     try:
         from google import genai
 
-        client = genai.Client(api_key=api_key)
+        client = genai.Client(api_key=api_key, vertexai=False)
         response = client.models.generate_content(
             model=model,
             contents="Reply with exactly: yap2slay connection successful",
