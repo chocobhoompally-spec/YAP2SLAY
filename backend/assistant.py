@@ -75,6 +75,34 @@ def _log(tag: str, exc: Exception, sensitive_values=()) -> None:
     print(f"[assistant:{tag}] {type(exc).__name__}{status_text}: {detail}")
 
 
+def _safe_diagnostic(stage: str, exc: Exception) -> str:
+    """Build a user-safe diagnostic from the stage and HTTP status only."""
+    status = _http_status(exc)
+    descriptions = {
+        400: "Gemini rejected the request; check request configuration.",
+        401: "Gemini rejected the configured credentials.",
+        403: "The configured credentials do not have permission for this request.",
+        404: "Gemini could not find the configured model or resource.",
+        408: "The request timed out while contacting Gemini.",
+        409: "Gemini reported a request conflict.",
+        429: "Gemini request quota or rate limit was reached.",
+        500: "Gemini encountered a temporary server error.",
+        502: "Gemini returned a temporary gateway error.",
+        503: "Gemini is temporarily unavailable.",
+        504: "Gemini did not respond before the request timed out.",
+    }
+    if status is None:
+        description = "No HTTP status was returned; check connectivity and service configuration."
+        status_reference = "HTTP status unavailable"
+    else:
+        description = descriptions.get(
+            status,
+            "Gemini rejected the request." if 400 <= status < 500 else "Gemini service error.",
+        )
+        status_reference = f"HTTP {status}"
+    return f"{stage} · {status_reference} · {description}"
+
+
 def _setting(name: str, default: str = "") -> str:
     """Read environment/.env settings first, then Streamlit Cloud secrets."""
     value = os.getenv(name, "").strip()
@@ -90,6 +118,12 @@ def _setting(name: str, default: str = "") -> str:
         return default
 
 
+class _UnavailableChat:
+    def __init__(self, diagnostic: str | None = None):
+        self.history = []
+        self.diagnostic = diagnostic
+
+
 def _make_client():
     key = _setting("GEMINI_API_KEY")
     if not key:
@@ -102,11 +136,7 @@ def _make_client():
         return client
     except Exception as e:
         _log("init", e, sensitive_values=(key,))
-        return None
-
-
-class _UnavailableChat:
-    def __init__(self): self.history = []
+        return _UnavailableChat(_safe_diagnostic("initialization", e))
 
 
 class _ManagedChat:
@@ -122,6 +152,8 @@ class _ManagedChat:
 def new_chat():
     api_key = _setting("GEMINI_API_KEY")
     client = _make_client()
+    if isinstance(client, _UnavailableChat):
+        return client
     if client is None:
         return _UnavailableChat()
     try:
@@ -139,7 +171,7 @@ def new_chat():
         return _ManagedChat(client, chat)
     except Exception as e:
         _log("new_chat", e, sensitive_values=(api_key, locals().get("model", "")))
-        return _UnavailableChat()
+        return _UnavailableChat(_safe_diagnostic("chat creation", e))
 
 
 def send(chat, message: str) -> dict:
@@ -157,17 +189,19 @@ def send(chat, message: str) -> dict:
         tz    = ZoneInfo(_setting("TIMEZONE", "Asia/Kolkata"))
         now   = datetime.now(tz).strftime("%A %Y-%m-%d %H:%M %Z")
         if isinstance(chat, _UnavailableChat):
-            reply = "Gemini failed to initialise. Check the app logs for the error."
+            diagnostic = chat.diagnostic or "initialization · HTTP status unavailable"
+            reply = f"Sorry, Gemini could not start. Diagnostic reference: {diagnostic}"
         else:
             response = chat.send_message(f"[Current local date and time: {now}]\n{message}")
             reply    = (getattr(response, "text", None) or "I couldn't produce a reply. Please try again.").strip()
     except Exception as e:
         _log("send", e, sensitive_values=(key,))
         code = _http_status(e)
+        diagnostic = _safe_diagnostic("message send", e)
         if code == 429:
-            reply = "Gemini rate limit hit — please wait 60 seconds and try again."
+            reply = f"Gemini is rate limited; please wait 60 seconds and try again. Diagnostic reference: {diagnostic}"
         elif code == 503:
-            reply = "Gemini is overloaded right now. Please try again in a moment."
+            reply = f"Gemini is temporarily overloaded. Please try again shortly. Diagnostic reference: {diagnostic}"
         else:
-            reply = "Sorry, Gemini is temporarily unavailable. Please try again shortly."
+            reply = f"Sorry, Gemini could not complete that request. Diagnostic reference: {diagnostic}"
     return {"reply": reply, "actions": db.actions_since(since)}

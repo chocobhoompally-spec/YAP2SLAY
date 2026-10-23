@@ -34,19 +34,33 @@ def test_initialization_failure_is_logged_without_key(monkeypatch, capsys):
     from google import genai
 
     api_key = "initialization-private-key-value"
-    monkeypatch.setattr(assistant, "_setting", lambda name, default="": api_key)
+    monkeypatch.setattr(
+        assistant,
+        "_setting",
+        lambda name, default="": api_key if name == "GEMINI_API_KEY" else default,
+    )
 
     def fail_client(**kwargs):
         raise FakeApiError(f"bad key api_key={api_key}", status_code=401)
 
     monkeypatch.setattr(genai, "Client", fail_client)
 
-    assert assistant._make_client() is None
+    chat = assistant.new_chat()
     output = capsys.readouterr().out
+    assert isinstance(chat, assistant._UnavailableChat)
     assert "[assistant:init]" in output
     assert "HTTP 401" in output
+    assert "HTTP 401" in chat.diagnostic
+    assert "configured credentials" in chat.diagnostic
     assert api_key not in output
     assert "bad key" in output
+    monkeypatch.setattr(assistant, "new_chat", lambda: chat)
+    monkeypatch.setattr(assistant.db, "latest_action_id", lambda: 0)
+    monkeypatch.setattr(assistant.db, "actions_since", lambda action_id: [])
+    reply = assistant.send(chat, "hello")["reply"]
+    assert "HTTP 401" in reply
+    assert "configured credentials" in reply
+    assert api_key not in reply
 
 
 def test_chat_creation_failure_is_logged(monkeypatch, capsys):
@@ -69,6 +83,8 @@ def test_chat_creation_failure_is_logged(monkeypatch, capsys):
     assert "HTTP 404" in output
     assert "model unavailable" in output
     assert api_key not in output
+    assert "HTTP 404" in result.diagnostic
+    assert "could not find" in result.diagnostic
 
 
 def test_message_send_failure_logs_details_but_returns_friendly_reply(monkeypatch, capsys):
@@ -83,14 +99,18 @@ def test_message_send_failure_logs_details_but_returns_friendly_reply(monkeypatc
 
     class BrokenChat:
         def send_message(self, message):
-            raise FakeApiError("request rejected: INVALID_ARGUMENT", status_code=400)
+            raise FakeApiError(
+                f"request rejected: INVALID_ARGUMENT api_key={api_key}; Authorization: Bearer {api_key}",
+                status_code=400,
+            )
 
     result = assistant.send(BrokenChat(), "hello")
     output = capsys.readouterr().out
     assert "[assistant:send]" in output
     assert "HTTP 400" in output
     assert "INVALID_ARGUMENT" in output
-    assert "temporarily unavailable" in result["reply"].lower()
+    assert "HTTP 400" in result["reply"]
+    assert "check request configuration" in result["reply"]
     assert "INVALID_ARGUMENT" not in result["reply"]
+    assert api_key not in result["reply"]
     assert api_key not in output
-
