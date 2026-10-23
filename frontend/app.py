@@ -455,6 +455,7 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
 [data-testid="stChatMessage"] {
     display:flex !important; width:100%; justify-content:flex-start !important;
     align-items:flex-start !important; gap:10px; margin:3px 0 9px;
+    background:transparent !important; box-shadow:none !important;
 }
 [data-testid="stChatMessageContent"] {
     width: fit-content;
@@ -700,6 +701,15 @@ body:has(.topbar[data-theme="light"]) section[data-testid="stMain"] {
 body:has(.topbar[data-theme="light"]) [class*="css"] { background:transparent !important; color:#30242b !important; }
 body:has(.topbar[data-theme="light"]) [data-testid="stButton"] button { color:#9a4f6b !important; border-color:#cd8da5 !important; }
 body:has(.topbar[data-theme="light"]) [data-testid="stButton"] button:hover { background:#efb4c8 !important; color:#30242b !important; }
+body:has(.topbar[data-theme="light"]) [data-testid="stPopover"] button,
+body:has(.topbar[data-theme="light"]) [data-testid="stPopoverBody"] button,
+body:has(.topbar[data-theme="light"]) button[kind="secondary"] {
+    background:#fff8fb !important; color:#844660 !important;
+    border:1px solid #d5a6b8 !important; box-shadow:none !important;
+}
+body:has(.topbar[data-theme="light"]) [data-testid="stPopover"] button:hover,
+body:has(.topbar[data-theme="light"]) [data-testid="stPopoverBody"] button:hover,
+body:has(.topbar[data-theme="light"]) button[kind="secondary"]:hover { background:#f9e6ed !important; color:#512c3b !important; }
 body:has(.topbar[data-theme="light"]) .st-key-focus-toggle-active [data-testid="stButton"] button { background:#ffb6c1 !important; color:#211318 !important; }
 body:has(.topbar[data-theme="light"]) .topbar { background:#fffafb; border-bottom-color:#e99db5; }
 body:has(.topbar[data-theme="light"]) .topbar-tag { color:#74616a; border-color:#d8cbd1; }
@@ -741,6 +751,7 @@ body:has(.topbar[data-theme="light"]) [data-testid="stNumberInput"] input,
 body:has(.topbar[data-theme="light"]) [data-baseweb="select"] > div,
 body:has(.topbar[data-theme="light"]) [data-testid="stTextArea"] textarea { background:#fff !important; color:#30242b !important; border-color:#cdbbc4 !important; }
 body:has(.topbar[data-theme="light"]) [data-testid="stPopoverBody"] label { color:#55464e !important; }
+body:has(.topbar[data-theme="light"]) .st-key-pomodoro-panel [data-testid="stNumberInput"] label { color:#55464e !important; }
 body:has(.topbar[data-theme="light"]) [data-testid="stChatInput"] > div { background:#fffafd !important; border-color:#d7c5ce !important; }
 body:has(.topbar[data-theme="light"]) [data-testid="stChatInput"] textarea { color:#30242b !important; }
 body:has(.topbar[data-theme="light"]) [class*="st-key-allie-companion"] { background:radial-gradient(ellipse at 17% 20%,#fff0f5,#f6e8ee 68%,#f2e9ed); border-color:#e1cdd6; }
