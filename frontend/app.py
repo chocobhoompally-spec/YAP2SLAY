@@ -440,7 +440,8 @@ def mins(m: int) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 db.init()
 
-if "chat"          not in st.session_state: st.session_state.chat          = assistant.new_chat()
+if "chat" not in st.session_state or isinstance(st.session_state.chat, assistant._UnavailableChat):
+    st.session_state.chat = assistant.new_chat()
 if "messages"      not in st.session_state: st.session_state.messages      = []
 if "pending_reset" not in st.session_state: st.session_state.pending_reset = False
 

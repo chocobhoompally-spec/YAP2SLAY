@@ -81,6 +81,9 @@ def send(chat, message: str) -> dict:
             "reply": "Gemini is not configured. Set GEMINI_API_KEY in Streamlit Cloud secrets to enable chat.",
             "actions": [],
         }
+    # If chat is still unavailable but we now have a key, try to create it
+    if isinstance(chat, _UnavailableChat):
+        chat = new_chat()
     since = db.latest_action_id()
     try:
         tz    = ZoneInfo(os.getenv("TIMEZONE", "Asia/Kolkata"))
@@ -98,5 +101,5 @@ def send(chat, message: str) -> dict:
         elif code == 503:
             reply = "Gemini is overloaded right now. Please try again in a moment."
         else:
-            reply = "Sorry, Gemini is temporarily unavailable. Please try again."
+            reply = f"Sorry, Gemini is temporarily unavailable ({type(e).__name__}). Please try again."
     return {"reply": reply, "actions": db.actions_since(since)}
