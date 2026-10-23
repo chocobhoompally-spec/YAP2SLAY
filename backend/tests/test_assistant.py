@@ -1,0 +1,96 @@
+from backend import assistant
+
+
+class FakeApiError(Exception):
+    def __init__(self, message, code=None, status_code=None):
+        super().__init__(message)
+        self.code = code
+        self.status_code = status_code
+
+
+def test_error_log_includes_status_and_redacts_credentials(monkeypatch, capsys):
+    api_key = "opaque-environment-secret-value"
+    google_key = "AIzaSyA-very-private-test-key-123456"
+    bearer = "private-bearer-token-value"
+    monkeypatch.setenv("GEMINI_API_KEY", api_key)
+    error = FakeApiError(
+        f"INVALID_ARGUMENT api_key={api_key}; echoed={api_key}; Authorization: Bearer {bearer}; "
+        f'x-goog-api-key: "{google_key}"',
+        code=400,
+    )
+
+    assistant._log("send", error)
+
+    output = capsys.readouterr().out
+    assert "HTTP 400" in output
+    assert "INVALID_ARGUMENT" in output
+    assert api_key not in output
+    assert google_key not in output
+    assert bearer not in output
+    assert "[REDACTED" in output
+
+
+def test_initialization_failure_is_logged_without_key(monkeypatch, capsys):
+    from google import genai
+
+    api_key = "initialization-private-key-value"
+    monkeypatch.setattr(assistant, "_setting", lambda name, default="": api_key)
+
+    def fail_client(**kwargs):
+        raise FakeApiError(f"bad key api_key={api_key}", status_code=401)
+
+    monkeypatch.setattr(genai, "Client", fail_client)
+
+    assert assistant._make_client() is None
+    output = capsys.readouterr().out
+    assert "[assistant:init]" in output
+    assert "HTTP 401" in output
+    assert api_key not in output
+    assert "bad key" in output
+
+
+def test_chat_creation_failure_is_logged(monkeypatch, capsys):
+    api_key = "chat-creation-private-key"
+    monkeypatch.setattr(assistant, "_setting", lambda name, default="": api_key)
+
+    class Chats:
+        def create(self, **kwargs):
+            raise FakeApiError("model unavailable; check model configuration", code=404)
+
+    class Client:
+        chats = Chats()
+
+    monkeypatch.setattr(assistant, "_make_client", lambda: Client())
+
+    result = assistant.new_chat()
+    output = capsys.readouterr().out
+    assert isinstance(result, assistant._UnavailableChat)
+    assert "[assistant:new_chat]" in output
+    assert "HTTP 404" in output
+    assert "model unavailable" in output
+    assert api_key not in output
+
+
+def test_message_send_failure_logs_details_but_returns_friendly_reply(monkeypatch, capsys):
+    api_key = "message-send-private-key"
+    monkeypatch.setattr(
+        assistant,
+        "_setting",
+        lambda name, default="": api_key if name == "GEMINI_API_KEY" else default,
+    )
+    monkeypatch.setattr(assistant.db, "latest_action_id", lambda: 0)
+    monkeypatch.setattr(assistant.db, "actions_since", lambda action_id: [])
+
+    class BrokenChat:
+        def send_message(self, message):
+            raise FakeApiError("request rejected: INVALID_ARGUMENT", status_code=400)
+
+    result = assistant.send(BrokenChat(), "hello")
+    output = capsys.readouterr().out
+    assert "[assistant:send]" in output
+    assert "HTTP 400" in output
+    assert "INVALID_ARGUMENT" in output
+    assert "temporarily unavailable" in result["reply"].lower()
+    assert "INVALID_ARGUMENT" not in result["reply"]
+    assert api_key not in output
+
