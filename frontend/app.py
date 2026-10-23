@@ -8,6 +8,7 @@ import os
 import pathlib
 import sys
 import base64
+import re
 from collections import defaultdict
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -496,6 +497,41 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
 }
 [data-testid="stChatInputSubmitButton"] { border-radius:50% !important; background:#f4b5c9 !important; }
 [data-testid="stChatInputSubmitButton"] svg { fill: #25151d !important; }
+[data-testid="stAudioInput"] { margin-top:2px; }
+[data-testid="stAudioInput"] label { display:none !important; }
+[data-testid="stAudioInputActionButton"] {
+    width:44px !important; height:44px !important; min-width:44px !important;
+    border:1px solid #70495a !important; border-radius:50% !important;
+    background:#292027 !important; color:#ffc2d5 !important;
+}
+[data-testid="stAudioInputActionButton"]:hover { background:#f4b5c9 !important; color:#25151d !important; }
+[data-testid="stAudioInput"] audio { max-width:100%; }
+.voice-equalizer {
+    display:flex; align-items:center; justify-content:center; gap:3px;
+    height:0; margin:0 auto; overflow:hidden; opacity:0;
+    transition:height .15s ease,opacity .15s ease,margin .15s ease;
+}
+.voice-equalizer i {
+    display:block; width:4px; height:5px; border-radius:5px;
+    background:linear-gradient(180deg,#ffe2ed,#ff4e91);
+    box-shadow:0 0 8px #ff4e91aa;
+    animation:voiceBars .72s ease-in-out infinite alternate;
+}
+.voice-equalizer i:nth-child(2n) { animation-delay:-.28s; }
+.voice-equalizer i:nth-child(3n) { animation-delay:-.5s; }
+.voice-equalizer i:nth-child(4n) { animation-delay:-.12s; }
+@keyframes voiceBars {
+    from { height:5px; opacity:.65; }
+    to { height:21px; opacity:1; }
+}
+[class*="st-key-chat-shell"]:has([data-testid="stAudioInputActionButton"][aria-label="Stop recording"]) [data-testid="stChatInput"] > div {
+    border-color:#ff63a0 !important;
+    box-shadow:0 0 0 3px #ff4e9133,0 0 16px #ff4e9166 !important;
+}
+[class*="st-key-chat-shell"]:has([data-testid="stAudioInputActionButton"][aria-label="Stop recording"]) .voice-equalizer {
+    height:23px; margin:5px auto 0; opacity:1;
+}
+@media (prefers-reduced-motion: reduce) { .voice-equalizer i { animation:none; height:12px; } }
 
 /* Allie lives beside the planner and reacts when hovered. */
 [class*="st-key-allie-companion"] {
@@ -656,6 +692,14 @@ def render_chat_message(msg: dict) -> None:
                 )
 
 
+_ALLIE_WAKE = re.compile(r"^\s*(?:hey|hi|hello)[,\s!—-]+all(?:ie|y)\b[,!\s?.;:—-]*", re.IGNORECASE)
+
+
+def remove_wake_phrase(text: str) -> tuple[bool, str]:
+    match = _ALLIE_WAKE.match(text)
+    return (True, text[match.end():].strip()) if match else (False, text.strip())
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # session state
 # ─────────────────────────────────────────────────────────────────────────────
@@ -675,6 +719,7 @@ if "allie_welcome_added" not in st.session_state:
 if "pending_reset" not in st.session_state: st.session_state.pending_reset = False
 if "xp"            not in st.session_state: st.session_state.xp            = 0
 if "focus_active"  not in st.session_state: st.session_state.focus_active  = False
+if "voice_input_version" not in st.session_state: st.session_state.voice_input_version = 0
 
 # ─────────────────────────────────────────────────────────────────────────────
 # top bar
@@ -750,22 +795,73 @@ with left:
                 render_chat_message(msg)
 
         pending_message = st.empty()
-        prompt = st.chat_input("Message Allie…", key="chat_prompt")
-        if prompt:
-            st.session_state.messages.append({"role": "user", "content": prompt, "actions": []})
-            with pending_message.container():
-                render_chat_message(st.session_state.messages[-1])
+        chat_input_col, mic_col = st.columns([8, 1], gap="small", vertical_alignment="bottom")
+        with chat_input_col:
+            prompt = st.chat_input("Message Allie…", key="chat_prompt")
+        with mic_col:
+            recording = st.audio_input(
+                "Record a voice command",
+                sample_rate=16000,
+                key=f"voice_input_{st.session_state.voice_input_version}",
+                help="Tap the mic, say your message, then stop recording.",
+                label_visibility="collapsed",
+            )
+            st.markdown(
+                '<div class="voice-equalizer" aria-hidden="true">'
+                '<i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>',
+                unsafe_allow_html=True,
+            )
+
+        user_text = prompt.strip() if prompt else ""
+        if not user_text and recording is not None:
+            # Rotate the widget key so the completed recording cannot be
+            # submitted again on the next Streamlit rerun.
+            st.session_state.voice_input_version += 1
+            listening = st.empty()
+            with listening.container():
                 with st.chat_message("assistant", avatar=str(ALLIE_AVATAR)):
                     st.markdown('<div class="message-author">Allie</div>', unsafe_allow_html=True)
-                    st.markdown(
-                        '<div class="allie-typing" role="status" aria-label="Allie is thinking">'
-                        '<span class="typing-dots"><i></i><i></i><i></i></span></div>',
-                        unsafe_allow_html=True,
-                    )
-                    with st.spinner("Allie is thinking…"):
-                        result = assistant.send(st.session_state.chat, prompt)
-                    reply = result["reply"]
-                    actions = result.get("actions", [])
+                    with st.spinner("Listening to your voice message…"):
+                        user_text = assistant.transcribe_audio(
+                            st.session_state.chat,
+                            recording.getvalue(),
+                            getattr(recording, "type", None) or "audio/wav",
+                        )
+            listening.empty()
+
+        if user_text:
+            is_wake, command = remove_wake_phrase(user_text)
+            assistant_prompt = command if is_wake else user_text
+            quick_ack = is_wake and not assistant_prompt
+        else:
+            is_wake = False
+            assistant_prompt = ""
+            quick_ack = recording is not None
+
+        if user_text or quick_ack:
+            if user_text:
+                st.session_state.messages.append({"role": "user", "content": user_text, "actions": []})
+            with pending_message.container():
+                if user_text:
+                    render_chat_message(st.session_state.messages[-1])
+                with st.chat_message("assistant", avatar=str(ALLIE_AVATAR)):
+                    st.markdown('<div class="message-author">Allie</div>', unsafe_allow_html=True)
+                    if not quick_ack:
+                        st.markdown(
+                            '<div class="allie-typing" role="status" aria-label="Allie is thinking">'
+                            '<span class="typing-dots"><i></i><i></i><i></i></span></div>',
+                            unsafe_allow_html=True,
+                        )
+                        with st.spinner("Allie is thinking…"):
+                            result = assistant.send(st.session_state.chat, assistant_prompt)
+                        reply = result["reply"]
+                        actions = result.get("actions", [])
+                    elif user_text:
+                        reply = "Yep, that's me 😌 What are we slaying today?"
+                        actions = []
+                    else:
+                        reply = "I didn't catch that. Try again a little closer to the mic? 🎙️"
+                        actions = []
                     st.markdown(reply)
                     if actions:
                         chips_html = '<div class="chips">'

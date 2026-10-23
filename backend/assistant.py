@@ -180,6 +180,34 @@ class _ManagedChat:
     def send_message(self, text):
         return self._chat.send_message(text)
 
+def transcribe_audio(chat, audio_bytes: bytes, mime_type: str = "audio/wav") -> str:
+    """Transcribe a short voice command using the active Gemini client."""
+    key = _setting("GEMINI_API_KEY")
+    if not key:
+        return ""
+    if isinstance(chat, _UnavailableChat):
+        chat = new_chat()
+    # Duck-type the managed chat's retained SDK client so an active Streamlit
+    # session can still transcribe after the frontend module hot-reloads.
+    client = getattr(chat, "_client", None)
+    if client is None:
+        return ""
+    try:
+        from google.genai import types
+
+        response = client.models.generate_content(
+            model=_setting("GEMINI_MODEL", "gemini-3.5-flash"),
+            contents=[
+                "Transcribe the user's speech exactly. Return only the spoken words, with no commentary or quotation marks.",
+                types.Part.from_bytes(data=audio_bytes, mime_type=mime_type),
+            ],
+            config=types.GenerateContentConfig(temperature=0),
+        )
+        return (getattr(response, "text", None) or "").strip().strip('"')
+    except Exception as exc:
+        _log("transcribe", exc, sensitive_values=(key,))
+        return ""
+
 
 def new_chat():
     api_key = _setting("GEMINI_API_KEY")
