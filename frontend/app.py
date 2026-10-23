@@ -52,13 +52,13 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
 /* ── scrollbar ── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: #0D0D0D; }
-::-webkit-scrollbar-thumb { background: #FF4500; border-radius: 0; }
+::-webkit-scrollbar-thumb { background: #FFB6C1; border-radius: 0; }
 
 /* ── top bar ── */
 .topbar {
     background: #0D0D0D;
-    border-bottom: 3px solid #FF4500;
-    padding: 14px 28px;
+    border-bottom: 3px solid #FFB6C1;
+    padding: 14px clamp(18px, 4vw, 58px);
     display: flex;
     align-items: center;
     gap: 16px;
@@ -70,7 +70,7 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     font-family: 'Space Mono', monospace;
     font-size: 1.5rem;
     font-weight: 700;
-    color: #FF4500;
+    color: #FFB6C1;
     letter-spacing: -1px;
     text-transform: uppercase;
 }
@@ -83,6 +83,31 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     border: 1px solid #333;
     padding: 3px 8px;
 }
+
+/* ── hero / game layer ── */
+.hero {
+    position: relative; overflow: hidden; padding: 20px 22px 18px; margin: 0 0 18px;
+    border: 1px solid #242426;
+    background: radial-gradient(ellipse at 0% 0%, #321b25 0%, #171317 48%, #101011 100%);
+}
+.hero::after {
+    content: ""; position: absolute; right: 12px; top: -35px; width: 180px; height: 180px;
+    border: 1px solid #ffb6c122; transform: rotate(45deg); pointer-events: none;
+    box-shadow: 0 0 0 18px #ffb6c10a, 0 0 0 38px #ffb6c108;
+}
+.hero-kicker, .eyebrow { color: #ffb6c1; font: 700 .62rem 'Space Mono', monospace; letter-spacing: 2px; text-transform: uppercase; }
+.hero-title { max-width: 700px; margin: 8px 0 4px; color: #f4f0ec; font-size: clamp(1.65rem, 3vw, 2.55rem); line-height: 1.06; font-weight: 900; letter-spacing: -1.5px; }
+.hero-title em { color: #ffb6c1; font-style: normal; }
+.hero-copy { color: #89868a; font: .72rem 'Space Mono', monospace; letter-spacing: .2px; }
+.hero-stats { display:flex; flex-wrap:wrap; gap:8px; margin-top:15px; position:relative; z-index:1; }
+.stat-pill { border:1px solid #343236; background:#111113cc; padding:6px 10px; color:#969198; font: .61rem 'Space Mono', monospace; text-transform:uppercase; letter-spacing:.5px; }
+.stat-pill b { color:#ffb6c1; font-size:.72rem; }
+.quick-row { display:flex; gap:7px; flex-wrap:wrap; margin: 6px 0 16px; }
+.quick-row [data-testid="stButton"] button { padding: 5px 10px !important; letter-spacing:.5px !important; font-size:.58rem !important; }
+.focus-card { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; margin:10px 0 16px; border:1px solid #49323b; background:#1c1519; color:#c5b8be; font: .64rem 'Space Mono', monospace; }
+.focus-card b { color:#ffb6c1; }
+.xp-track { height:5px; background:#292528; margin-top:7px; overflow:hidden; }
+.xp-fill { height:100%; background:linear-gradient(90deg,#ff8fab,#ffd1dc); box-shadow:0 0 12px #ffb6c199; }
 
 /* ── two-column layout ── */
 .layout {
@@ -110,7 +135,7 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     font-size: 0.6rem;
     letter-spacing: 4px;
     text-transform: uppercase;
-    color: #FF4500;
+    color: #FFB6C1;
     border-bottom: 1px solid #1E1E1E;
     padding-bottom: 6px;
     margin-bottom: 10px;
@@ -139,10 +164,10 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     position: relative;
 }
 .bubble-user {
-    background: #FF4500;
+    background: #FFB6C1;
     color: #0D0D0D;
     font-weight: 600;
-    border: 2px solid #FF4500;
+    border: 2px solid #FFB6C1;
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
 }
 .bubble-bot {
@@ -159,7 +184,7 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     margin-bottom: 5px;
     opacity: 0.6;
 }
-.bubble-bot .bubble-name { color: #FF4500; opacity: 1; }
+.bubble-bot .bubble-name { color: #FFB6C1; opacity: 1; }
 
 /* ── action chips ── */
 .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
@@ -169,8 +194,8 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     letter-spacing: 1px;
     text-transform: uppercase;
     padding: 2px 8px;
-    border: 1px solid #FF4500;
-    color: #FF4500;
+    border: 1px solid #FFB6C1;
+    color: #FFB6C1;
     background: transparent;
 }
 .chip-done  { border-color: #00C896; color: #00C896; }
@@ -226,10 +251,10 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     margin-top: 3px;
     letter-spacing: 0.5px;
 }
-.block-now { border-color: #FF4500 !important; }
+.block-now { border-color: #FFB6C1 !important; }
 .block-now .block-title::after {
     content: " ▶ NOW";
-    color: #FF4500;
+    color: #FFB6C1;
     font-size: 0.65rem;
 }
 .block-past { opacity: 0.35; }
@@ -253,7 +278,7 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     padding: 10px 12px;
     margin: 5px 0;
 }
-.task-high   { border-left-color: #FF4500; }
+.task-high   { border-left-color: #FFB6C1; }
 .task-normal { border-left-color: #4A9EFF; }
 .task-low    { border-left-color: #555; }
 .task-title {
@@ -278,7 +303,7 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
 }
 .progress-fill {
     height: 100%;
-    background: #FF4500;
+    background: #FFB6C1;
     position: absolute;
     top: 0;
     left: 0;
@@ -321,8 +346,8 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     letter-spacing: 1px;
     text-transform: uppercase;
     padding: 2px 6px;
-    border: 1px solid #FF4500;
-    color: #FF4500;
+    border: 1px solid #FFB6C1;
+    color: #FFB6C1;
     white-space: nowrap;
     flex-shrink: 0;
 }
@@ -343,7 +368,7 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     background: #141414 !important;
 }
 [data-testid="stChatInput"] > div:focus-within {
-    border-color: #FF4500 !important;
+    border-color: #FFB6C1 !important;
     box-shadow: none !important;
 }
 [data-testid="stChatInput"] textarea {
@@ -354,7 +379,7 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     border: none !important;
     box-shadow: none !important;
 }
-[data-testid="stChatInputSubmitButton"] svg { fill: #FF4500 !important; }
+[data-testid="stChatInputSubmitButton"] svg { fill: #FFB6C1 !important; }
 
 /* ── reset / confirm buttons ── */
 [data-testid="stButton"] button {
@@ -363,18 +388,18 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     letter-spacing: 2px !important;
     text-transform: uppercase !important;
     border-radius: 0 !important;
-    border: 1px solid #FF4500 !important;
+    border: 1px solid #FFB6C1 !important;
     background: transparent !important;
-    color: #FF4500 !important;
+    color: #FFB6C1 !important;
     padding: 5px 14px !important;
 }
 [data-testid="stButton"] button:hover {
-    background: #FF4500 !important;
+    background: #FFB6C1 !important;
     color: #0D0D0D !important;
 }
 
 /* ── spinner ── */
-[data-testid="stSpinner"] { color: #FF4500 !important; }
+[data-testid="stSpinner"] { color: #FFB6C1 !important; }
 
 /* ── warning box ── */
 [data-testid="stAlert"] {
@@ -392,7 +417,7 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
 # helpers
 # ─────────────────────────────────────────────────────────────────────────────
 KIND_COLOR = {
-    "exam":       "#FF4500",
+    "exam":       "#FFB6C1",
     "assignment": "#4A9EFF",
     "reading":    "#00C896",
     "personal":   "#A78BFA",
@@ -444,13 +469,15 @@ if "chat" not in st.session_state or isinstance(st.session_state.chat, assistant
     st.session_state.chat = assistant.new_chat()
 if "messages"      not in st.session_state: st.session_state.messages      = []
 if "pending_reset" not in st.session_state: st.session_state.pending_reset = False
+if "xp"            not in st.session_state: st.session_state.xp            = 0
+if "focus_active"  not in st.session_state: st.session_state.focus_active  = False
 
 # ─────────────────────────────────────────────────────────────────────────────
 # top bar
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="topbar">
-    <span class="topbar-logo">⚡ yap2slay</span>
+    <span class="topbar-logo">ϟ yap2slay</span>
     <span class="topbar-tag">student life copilot</span>
 </div>
 """, unsafe_allow_html=True)
@@ -464,6 +491,47 @@ left, right = st.columns([3, 2], gap="small")
 # LEFT — CHAT
 # ═════════════════════════════════════════════════════════════════════════════
 with left:
+    active_tasks = db.list_tasks(include_done=False)
+    completed_tasks = [t for t in db.list_tasks(include_done=True) if t.get("status") == "done"]
+    xp = st.session_state.xp + len(completed_tasks) * 50
+    level = xp // 200 + 1
+    level_progress = xp % 200
+    st.markdown(f"""
+<div class="hero">
+  <div class="hero-kicker">ϟ your study sidekick · level {level}</div>
+  <div class="hero-title">YAP ABOUT YOUR<br><em>PROBLEMS. SLAY THEM.</em></div>
+  <div class="hero-copy">// an AI study copilot that acts, not just answers</div>
+  <div class="hero-stats">
+    <span class="stat-pill"><b>{len(active_tasks)}</b> active quests</span>
+    <span class="stat-pill"><b>{len(completed_tasks)}</b> cleared</span>
+    <span class="stat-pill"><b>{xp}</b> XP</span>
+  </div>
+  <div class="xp-track"><div class="xp-fill" style="width:{level_progress / 2}%"></div></div>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown('<div class="eyebrow">// quick starts</div>', unsafe_allow_html=True)
+    q1, q2, q3 = st.columns(3)
+    for col, label, prompt_text in [
+        (q1, "＋ add a task", "I need to add a task"),
+        (q2, "⚡ plan my day", "Help me plan my study time today"),
+        (q3, "↻ life happened", "I lost an hour; replan my schedule"),
+    ]:
+        with col:
+            if st.button(label, key=f"quick_{label}", use_container_width=True):
+                st.session_state.chat_prompt = prompt_text
+                st.rerun()
+
+    if st.session_state.focus_active:
+        st.markdown('<div class="focus-card"><span>◉ <b>FOCUS MODE</b> · protect your next 25 minutes</span></div>', unsafe_allow_html=True)
+        if st.button("✓ finish focus · claim 25 XP", key="finish_focus"):
+            st.session_state.xp += 25
+            st.session_state.focus_active = False
+            st.rerun()
+    elif st.button("◉ start a 25 min focus sprint", key="start_focus"):
+        st.session_state.focus_active = True
+        st.rerun()
+
     st.markdown('<p class="sec-head">// chat</p>', unsafe_allow_html=True)
 
     # --- render messages using native st.chat_message for proper layout ---
@@ -493,7 +561,7 @@ with left:
                     )
 
     # --- chat input ---
-    prompt = st.chat_input("What's on your plate today?")
+    prompt = st.chat_input("What's on your plate today?", key="chat_prompt")
     if prompt:
         st.session_state.messages.append({"role": "user", "content": prompt, "actions": []})
         with st.chat_message("user"):

@@ -23,8 +23,23 @@ def _log(tag: str, exc: Exception) -> None:
         print(f"[assistant:{tag}] {etype}: {msg[:300]}")
 
 
+def _setting(name: str, default: str = "") -> str:
+    """Read environment/.env settings first, then Streamlit Cloud secrets."""
+    value = os.getenv(name, "").strip()
+    if value:
+        return value
+    try:
+        import streamlit as st
+
+        value = st.secrets.get(name, default)
+        return str(value).strip() if value is not None else default
+    except Exception:
+        # Outside Streamlit there may be no secrets.toml or Streamlit runtime.
+        return default
+
+
 def _make_client():
-    key = os.getenv("GEMINI_API_KEY", "").strip()
+    key = _setting("GEMINI_API_KEY")
     if not key:
         print("[assistant:init] GEMINI_API_KEY is not set — chat disabled")
         return None
@@ -58,7 +73,7 @@ def new_chat():
         return _UnavailableChat()
     try:
         from google.genai import types
-        model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash").strip()
+        model = _setting("GEMINI_MODEL", "gemini-3.5-flash")
         chat  = client.chats.create(
             model=model,
             config=types.GenerateContentConfig(
@@ -75,10 +90,10 @@ def new_chat():
 
 
 def send(chat, message: str) -> dict:
-    key = os.getenv("GEMINI_API_KEY", "").strip()
+    key = _setting("GEMINI_API_KEY")
     if not key:
         return {
-            "reply": "Gemini is not configured. Set GEMINI_API_KEY in Streamlit Cloud secrets to enable chat.",
+            "reply": "Gemini is not configured. Add GEMINI_API_KEY to Streamlit app Secrets (or to .env when running locally).",
             "actions": [],
         }
     # If chat is still unavailable but we now have a key, try to create it
@@ -86,7 +101,7 @@ def send(chat, message: str) -> dict:
         chat = new_chat()
     since = db.latest_action_id()
     try:
-        tz    = ZoneInfo(os.getenv("TIMEZONE", "Asia/Kolkata"))
+        tz    = ZoneInfo(_setting("TIMEZONE", "Asia/Kolkata"))
         now   = datetime.now(tz).strftime("%A %Y-%m-%d %H:%M %Z")
         if isinstance(chat, _UnavailableChat):
             reply = "Gemini failed to initialise. Check the app logs for the error."
