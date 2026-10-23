@@ -122,6 +122,72 @@ def complete_task(task_id):
             c.execute("UPDATE tasks SET status='done',done_minutes=est_minutes WHERE id=?",(tid,))
             return _result(c,"complete_task",f"Completed task: {row['title']}")
     except (ValueError,TypeError) as e: return {"ok":False,"error":str(e)}
+def delete_task(task_id):
+    """Delete a task and its scheduled blocks, then refresh the remaining plan."""
+    try:
+        _ensure()
+        tid=int(task_id)
+        with db.connect() as c:
+            row=c.execute("SELECT title FROM tasks WHERE id=?",(tid,)).fetchone()
+            if not row: raise ValueError(f"No task exists with ID {tid}")
+            title=row["title"]
+            c.execute("DELETE FROM tasks WHERE id=?",(tid,))
+            return _result(c,"delete_task",f"Deleted task: {title}")
+    except (ValueError,TypeError) as e: return {"ok":False,"error":str(e)}
+def delete_schedule_block(block_id):
+    """Remove one planned block without deleting its task or free-time window."""
+    try:
+        _ensure()
+        bid=int(block_id)
+        with db.connect() as c:
+            row=c.execute("SELECT title,start_at,end_at FROM blocks JOIN tasks ON tasks.id=blocks.task_id WHERE blocks.id=?",(bid,)).fetchone()
+            if not row: raise ValueError("That schedule block no longer exists")
+            c.execute("DELETE FROM blocks WHERE id=?",(bid,))
+            db.log_action(c,"delete_schedule_block",f"Removed scheduled block: {row['title']} ({row['start_at']}–{row['end_at']})")
+            return {"ok":True,"message":"Removed schedule block"}
+    except (ValueError,TypeError) as e: return {"ok":False,"error":str(e)}
+def _schedule_block_values(task_id, day, start_time, end_time):
+    tid=int(task_id)
+    day,a,b=parse_window(day,start_time,end_time)
+    start=datetime.combine(date_type.fromisoformat(day),time.fromisoformat(a),tzinfo=tz())
+    end=datetime.combine(date_type.fromisoformat(day),time.fromisoformat(b),tzinfo=tz())
+    return tid,start,end
+def _check_block_conflict(c, task_id, start, end, exclude_id=None):
+    row=c.execute("SELECT due_at,status FROM tasks WHERE id=?",(task_id,)).fetchone()
+    if not row: raise ValueError(f"No task exists with ID {task_id}")
+    if row["status"] == "done": raise ValueError("A completed task cannot be scheduled")
+    if end > datetime.fromisoformat(row["due_at"]): raise ValueError("The schedule block must end before the task deadline")
+    for block in c.execute("SELECT id,start_at,end_at FROM blocks").fetchall():
+        if exclude_id is not None and block["id"] == exclude_id: continue
+        old_start=datetime.fromisoformat(block["start_at"]); old_end=datetime.fromisoformat(block["end_at"])
+        if start < old_end and end > old_start: raise ValueError("That time overlaps another schedule block")
+def add_schedule_block(task_id, day, start_time, end_time):
+    """Add a manually timed task block without rebuilding away the user's choice."""
+    try:
+        _ensure()
+        tid,start,end=_schedule_block_values(task_id,day,start_time,end_time)
+        with db.connect() as c:
+            _check_block_conflict(c,tid,start,end)
+            c.execute("INSERT INTO blocks(task_id,start_at,end_at) VALUES(?,?,?)",(tid,start.isoformat(),end.isoformat()))
+            task=c.execute("SELECT title FROM tasks WHERE id=?",(tid,)).fetchone()
+            db.log_action(c,"add_schedule_block",f"Scheduled {task['title']} from {start.isoformat()} to {end.isoformat()}")
+            return {"ok":True,"message":f"Scheduled {task['title']}"}
+    except (ValueError,TypeError) as e: return {"ok":False,"error":str(e)}
+def update_schedule_block(block_id, day, start_time, end_time):
+    """Move or resize one block after checking deadline and overlap constraints."""
+    try:
+        _ensure()
+        bid=int(block_id)
+        with db.connect() as c:
+            row=c.execute("SELECT task_id FROM blocks WHERE id=?",(bid,)).fetchone()
+            if not row: raise ValueError("That schedule block no longer exists")
+            tid,start,end=_schedule_block_values(row["task_id"],day,start_time,end_time)
+            _check_block_conflict(c,tid,start,end,exclude_id=bid)
+            c.execute("UPDATE blocks SET start_at=?,end_at=? WHERE id=?",(start.isoformat(),end.isoformat(),bid))
+            task=c.execute("SELECT title FROM tasks WHERE id=?",(tid,)).fetchone()
+            db.log_action(c,"update_schedule_block",f"Rescheduled {task['title']} to {start.isoformat()}–{end.isoformat()}")
+            return {"ok":True,"message":f"Updated schedule for {task['title']}"}
+    except (ValueError,TypeError) as e: return {"ok":False,"error":str(e)}
 def log_progress(task_id,minutes_done):
     try:
         _ensure()

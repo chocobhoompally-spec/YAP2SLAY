@@ -16,6 +16,9 @@ def generate_schedule() -> dict:
 def report_lost_time(minutes: int, date: str = "") -> dict: return svc.report_lost_time(minutes,date)
 def block_time(date: str,start_time: str,end_time: str,reason: str = "") -> dict: return svc.block_time(date,start_time,end_time,reason)
 def complete_task(task_id: int) -> dict: return svc.complete_task(task_id)
+def delete_task(task_id: int) -> dict:
+    """Delete a saved task and rebuild the remaining schedule."""
+    return svc.delete_task(task_id)
 def log_progress(task_id: int,minutes_done: int) -> dict: return svc.log_progress(task_id,minutes_done)
 def update_task(task_id: int,title: str = "",due_at: str = "",est_minutes: int = 0,priority: int = 0) -> dict: return svc.update_task(task_id,title,due_at,est_minutes,priority)
-ALL_TOOLS=[add_task,list_tasks,set_available_time,generate_schedule,report_lost_time,block_time,complete_task,log_progress,update_task]
+ALL_TOOLS=[add_task,list_tasks,set_available_time,generate_schedule,report_lost_time,block_time,complete_task,delete_task,log_progress,update_task]

@@ -53,6 +53,11 @@ def actions_since(action_id: int) -> list[dict]:
 def latest_action_id() -> int:
     init()
     with connect() as c: return c.execute("SELECT COALESCE(MAX(id),0) FROM actions").fetchone()[0]
+def clear_actions() -> None:
+    """Clear activity history without changing tasks, availability, or schedule."""
+    init()
+    with connect() as c:
+        c.execute("DELETE FROM actions")
 def reset() -> None:
     """Clear planner rows only; never remove the SQLite file or unrelated files."""
     init()
