@@ -1170,7 +1170,7 @@ with left:
                         reply = result["reply"]
                         actions = result.get("actions", [])
                     elif user_text:
-                        reply = "Yep, that's me 😌 What are we slaying today?"
+                        reply = assistant.GREETING
                         actions = []
                     else:
                         reply = "I didn't catch that. Try again a little closer to the mic? 🎙️"
