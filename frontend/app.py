@@ -829,9 +829,8 @@ def close_pomodoro() -> None:
     st.session_state.pomodoro_open = False
 
 
-@st.fragment(run_every=1)
-def render_pomodoro() -> None:
-    """Configurable focus/break cycles that refresh without rerunning the app."""
+def _render_pomodoro_contents() -> None:
+    """Render the configurable focus/break timer and its controls."""
     mode = st.session_state.pomodoro_mode
     deadline = st.session_state.focus_deadline
     if deadline is not None:
@@ -863,7 +862,7 @@ def render_pomodoro() -> None:
                 st.session_state.focus_remaining = _configured_focus_seconds()
                 st.session_state.focus_deadline = time.time() + st.session_state.focus_remaining
                 st.toast("Break over · back to your next focus interval ✨")
-            st.rerun(scope="fragment")
+            st.rerun()
         else:
             st.session_state.focus_remaining = remaining
     else:
@@ -905,7 +904,7 @@ def render_pomodoro() -> None:
             if start_col.button("Ⅱ pause", key="pause_focus", use_container_width=True):
                 st.session_state.focus_remaining = max(0, int(st.session_state.focus_deadline - time.time()))
                 st.session_state.focus_deadline = None
-                st.rerun(scope="fragment")
+                st.rerun()
         else:
             disabled = mode == "idle" and _configured_focus_seconds() == 0
             if start_col.button("▶ start" if mode == "idle" else "▶ resume", key="start_focus", use_container_width=True, disabled=disabled):
@@ -914,16 +913,28 @@ def render_pomodoro() -> None:
                     st.session_state.pomodoro_mode = "focus"
                     st.session_state.focus_remaining = _configured_focus_seconds()
                 st.session_state.focus_deadline = time.time() + max(1, st.session_state.focus_remaining)
-                st.rerun(scope="fragment")
+                st.rerun()
         if reset_col.button("↺ reset", key="reset_focus", use_container_width=True):
             st.session_state.focus_deadline = None
             st.session_state.pomodoro_mode = "idle"
             st.session_state.focus_cycles_completed = 0
             st.session_state.focus_remaining = _configured_focus_seconds()
-            st.rerun(scope="fragment")
+            st.rerun()
         if close_col.button("×", key="close_focus_panel", help="Close focus timer"):
             close_pomodoro()
             st.rerun()
+
+
+_render_running_pomodoro = st.fragment(run_every=1)(_render_pomodoro_contents)
+
+
+def render_pomodoro() -> None:
+    """Refresh once per second only while a countdown is actively running."""
+    if st.session_state.get("focus_deadline") is None:
+        _render_pomodoro_contents()
+    else:
+        _render_running_pomodoro()
+
 
 def render_chat_message(msg: dict) -> None:
     role = msg["role"]
