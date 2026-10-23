@@ -96,7 +96,7 @@ pip freeze > requirements.txt
 `.env.example`
 ```env
 GEMINI_API_KEY=your_key_here
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.5-flash-lite
 TIMEZONE=Asia/Kolkata
 DB_PATH=planner.db
 ```
@@ -335,7 +335,7 @@ from backend import db, tools
 
 load_dotenv()
 TZ = ZoneInfo(os.getenv("TIMEZONE", "Asia/Kolkata"))
-MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
 SYSTEM_PROMPT = """You are yap2slay, a friendly study-planning assistant.

@@ -13,7 +13,7 @@ def main() -> int:
     load_dotenv(dotenv_path=project_root / ".env")
 
     api_key = (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()
-    model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash").strip()
+    model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
     if not api_key:
         print("Gemini smoke test not run: GEMINI_API_KEY is missing. Set it in the project .env file.")
         return 2

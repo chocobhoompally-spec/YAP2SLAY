@@ -11,7 +11,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Create a Gemini API key in Google AI Studio and add it to `.env` as `GEMINI_API_KEY`. The defaults are `GEMINI_MODEL=gemini-3.5-flash`, `TIMEZONE=Asia/Kolkata`, and `DB_PATH=planner.db`. Never commit `.env` or the local database.
+Create a Gemini API key in Google AI Studio and add it to `.env` as `GEMINI_API_KEY`. The defaults are `GEMINI_MODEL=gemini-3.5-flash-lite`, `TIMEZONE=Asia/Kolkata`, and `DB_PATH=planner.db`. Never commit `.env` or the local database.
 
 Run the tests with `pytest -q`. The frontend belongs to Person 2 and is not in this checkout. Once `app.py` is integrated, start it with `streamlit run app.py`.
 

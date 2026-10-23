@@ -168,3 +168,54 @@ def test_message_send_failure_logs_details_but_returns_friendly_reply(monkeypatc
     assert "INVALID_ARGUMENT" not in result["reply"]
     assert api_key not in result["reply"]
     assert api_key not in output
+
+
+def test_new_chat_uses_flash_lite_with_existing_function_tools(monkeypatch):
+    captured = {}
+
+    class Chats:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+            return object()
+
+    class Client:
+        chats = Chats()
+
+    monkeypatch.setattr(
+        assistant,
+        "_setting",
+        lambda name, default="": "test-key" if name == "GEMINI_API_KEY" else default,
+    )
+    monkeypatch.setattr(assistant, "_make_client", lambda: Client())
+
+    chat = assistant.new_chat()
+
+    assert isinstance(chat, assistant._ManagedChat)
+    assert captured["model"] == "gemini-3.5-flash-lite"
+    assert captured["config"].tools == assistant.tools.ALL_TOOLS
+
+
+def test_rate_limit_reply_does_not_guess_a_retry_delay(monkeypatch):
+    api_key = "test-key"
+    monkeypatch.setattr(
+        assistant,
+        "_setting",
+        lambda name, default="": api_key if name == "GEMINI_API_KEY" else default,
+    )
+    monkeypatch.setattr(assistant.db, "latest_action_id", lambda: 0)
+    monkeypatch.setattr(assistant.db, "actions_since", lambda action_id: [])
+
+    class RateLimitedChat:
+        calls = 0
+
+        def send_message(self, message):
+            self.calls += 1
+            raise FakeApiError("quota exhausted", status_code=429)
+
+    chat = RateLimitedChat()
+    result = assistant.send(chat, "help me plan")
+
+    assert chat.calls == 1
+    assert "quota or rate limit was reached" in result["reply"]
+    assert "Google AI Studio" in result["reply"]
+    assert "60 seconds" not in result["reply"]
