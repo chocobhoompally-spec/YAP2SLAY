@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import pathlib
 import sys
+import base64
 from collections import defaultdict
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -21,6 +22,30 @@ import streamlit as st
 from backend import assistant, db
 
 TZ = ZoneInfo(os.getenv("TIMEZONE", "Asia/Kolkata"))
+ASSETS = pathlib.Path(__file__).parent / "assets"
+ALLIE_AVATAR = ASSETS / "allie-avatar.png"
+ALLIE_COMPANION = ASSETS / "allie-companion.png"
+ALLIE_ARM_LEFT = ASSETS / "allie-arm-left.png"
+ALLIE_ARM_RIGHT = ASSETS / "allie-arm-right.png"
+USER_AVATAR = ASSETS / "user-avatar.png"
+WELCOME_MESSAGE = (
+    "Hi, I'm Allie — your personal study sidekick ✨ "
+    "Give me your deadlines, study chaos, or the one task you keep dodging. "
+    "We'll turn it into a plan and get you feeling very on top of things. "
+    "What's on your plate today?"
+)
+
+def png_data_uri(path: pathlib.Path) -> str:
+    return "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode("ascii")
+
+ALLIE_STAGE_MARKUP = f"""
+<div class="allie-stage" role="img" aria-label="Allie, your pink robot study buddy">
+  <div class="allie-hello" aria-hidden="true">Hi! 👋</div>
+  <img class="allie-arm-left" src="{png_data_uri(ALLIE_ARM_LEFT)}" alt="">
+  <img class="allie-arm-right" src="{png_data_uri(ALLIE_ARM_RIGHT)}" alt="">
+  <img class="allie-body" src="{png_data_uri(ALLIE_COMPANION)}" alt="">
+</div>
+"""
 
 # ─────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -362,14 +387,104 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
 .log-text { color: #666; font-size: 0.72rem; line-height: 1.4; }
 
 /* ── chat input override ── */
+[class*="st-key-chat-shell"] {
+    background: linear-gradient(155deg, #171519, #111113 70%);
+    border: 1px solid #30262c;
+    border-radius: 22px;
+    padding: 14px 16px 10px;
+    box-shadow: 0 16px 38px #0005, inset 0 1px #ffffff08;
+}
+[class*="st-key-chat-history"] {
+    background: #101012;
+    border: 1px solid #252329;
+    border-radius: 17px;
+    padding: 12px 14px;
+    scrollbar-color: #634550 #101012;
+    scrollbar-width: thin;
+}
+[class*="st-key-chat-history"] [data-testid="stVerticalBlock"] { gap: .55rem; }
+.chat-heading {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding: 2px 3px 12px;
+}
+.chat-heading-title { color:#f7edf1; font-size:1rem; font-weight:700; }
+.chat-heading-subtitle { color:#8f858b; font: .62rem 'Space Mono',monospace; margin-top:3px; }
+.allie-online { color:#83e8c2; font: .58rem 'Space Mono',monospace; letter-spacing:1px; text-transform:uppercase; }
+.allie-online::before { content:""; display:inline-block; width:7px;height:7px; background:#83e8c2; border-radius:50%; margin-right:7px; box-shadow:0 0 9px #83e8c277; }
+
+/* Native Streamlit chat messages, styled as a two-sided conversation. */
+[data-testid="stChatMessage"] {
+    display:flex !important; width:100%; justify-content:flex-start !important;
+    align-items:flex-start !important; gap:10px; margin:3px 0 9px;
+}
+[data-testid="stChatMessageContent"] {
+    width: fit-content;
+    max-width: min(78%, 680px);
+    flex:0 1 auto;
+    display:flex !important; flex-direction:column; justify-content:flex-start !important;
+    align-items:flex-start !important; align-self:flex-start !important;
+    margin:0 !important; padding:13px 17px 14px;
+    background: #1b1a20;
+    border: 1px solid #302d35;
+    border-radius: 19px 19px 19px 6px;
+    color: #f3edf0;
+    overflow-wrap: anywhere;
+    box-shadow: 0 4px 12px #0002;
+    position:relative; overflow:visible;
+}
+[data-testid="stChatMessageContent"]::after {
+    content:""; position:absolute; left:-7px; bottom:1px; width:12px; height:13px;
+    background:#1b1a20; clip-path:polygon(100% 0,100% 100%,0 100%);
+}
+[data-testid="stChatMessageContent"] > div { width:100%; min-height:0 !important; flex:0 0 auto !important; align-self:stretch !important; }
+[data-testid="stChatMessageContent"] [data-testid="stMarkdownContainer"] { width:100%; min-height:0 !important; }
+[data-testid="stChatMessageContent"] p { margin:0 0 .55rem !important; line-height:1.5; text-align:left; }
+[data-testid="stChatMessageContent"] p:last-child { margin-bottom:0; }
+[data-testid="stChatMessageContent"] li { line-height:1.55; }
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) { flex-direction:row-reverse; }
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) [data-testid="stChatMessageContent"] {
+    background: linear-gradient(135deg,#f3b3c8,#ffc9d9);
+    border-color:#ffd0df;
+    border-radius:19px 19px 6px 19px;
+    color:#24131b;
+}
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) [data-testid="stChatMessageContent"]::after {
+    left:auto; right:-7px; background:#ffc9d9;
+    clip-path:polygon(0 0,100% 100%,0 100%);
+}
+[data-testid="stChatMessageAvatarImage"] {
+    width:40px !important; height:40px !important; min-width:40px !important;
+    object-fit:cover !important; border-radius:50% !important;
+    border:1px solid #56404a; box-shadow:0 3px 10px #0006;
+}
+.message-author {
+    color:#ffb6c8; font:700 .58rem 'Space Mono',monospace;
+    letter-spacing:1.3px; text-transform:uppercase; margin:0 0 6px;
+}
+[data-testid="stChatMessage"]:has([aria-label="Chat message from user"]) .message-author { color:#684456; text-align:right; }
+.allie-typing {
+    position:relative; display:flex; align-items:center; justify-content:center;
+    width:66px; height:42px; color:#a85d79; background:#f2b4c9;
+    border:1px solid #ffd0df; border-radius:22px; box-shadow:0 4px 12px #0002;
+}
+.allie-typing::before,.allie-typing::after { content:""; position:absolute; background:#f2b4c9; border-radius:50%; }
+.allie-typing::before { width:9px;height:9px;left:-5px;bottom:0; }
+.allie-typing::after { width:5px;height:5px;left:-10px;bottom:-5px; }
+.typing-dots { display:inline-flex; gap:4px; }
+.typing-dots i { width:8px;height:8px;border-radius:50%;background:#ad6680;animation:typing 1s ease-in-out infinite; }
+.typing-dots i:nth-child(2) { animation-delay:.15s; }
+.typing-dots i:nth-child(3) { animation-delay:.3s; }
+@keyframes typing { 0%,60%,100% { transform:translateY(0);opacity:.45; } 30% { transform:translateY(-4px);opacity:1; } }
+
 [data-testid="stChatInput"] > div {
-    border: 2px solid #1E1E1E !important;
-    border-radius: 0 !important;
-    background: #141414 !important;
+    border: 1px solid #44343d !important;
+    border-radius: 999px !important;
+    background: #1a181c !important;
+    box-shadow: inset 0 1px 3px #0005 !important;
 }
 [data-testid="stChatInput"] > div:focus-within {
-    border-color: #FFB6C1 !important;
-    box-shadow: none !important;
+    border-color: #ffb6c8 !important;
+    box-shadow: 0 0 0 3px #ffb6c822 !important;
 }
 [data-testid="stChatInput"] textarea {
     font-family: 'Space Grotesk', sans-serif !important;
@@ -379,7 +494,62 @@ section[data-testid="stMain"] > div { padding: 0 !important; }
     border: none !important;
     box-shadow: none !important;
 }
-[data-testid="stChatInputSubmitButton"] svg { fill: #FFB6C1 !important; }
+[data-testid="stChatInputSubmitButton"] { border-radius:50% !important; background:#f4b5c9 !important; }
+[data-testid="stChatInputSubmitButton"] svg { fill: #25151d !important; }
+
+/* Allie lives beside the planner and reacts when hovered. */
+[class*="st-key-allie-companion"] {
+    position:relative; overflow:hidden; padding:14px 16px 10px;
+    border:1px solid #3b2a33; border-radius:22px;
+    background:radial-gradient(ellipse at 17% 20%,#39232d 0%,#1a171b 54%,#121214 100%);
+    margin-bottom:18px; box-shadow:0 12px 30px #0004;
+    transition:border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+}
+[class*="st-key-allie-companion"]:hover { border-color:#ed9eb8; box-shadow:0 14px 34px #ffb6c822; transform:translateY(-2px); }
+.allie-stage {
+    position:relative; width:170px; height:200px; max-width:100%; margin:auto;
+    animation:allieFloat 4s ease-in-out infinite;
+}
+.allie-stage img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+.allie-arm-right { transform-origin:79% 57%; }
+.allie-arm-left { transform-origin:21% 57%; }
+.allie-stage:hover .allie-arm-right { animation:allieArmWave .9s ease-in-out infinite; }
+[class*="st-key-allie-companion-wave"] .allie-arm-right { animation:allieArmWave .9s ease-in-out 3; }
+.allie-hello {
+    position:absolute; z-index:2; top:10px; right:-24px; padding:7px 13px;
+    border:1px solid #ffd4e1; border-radius:18px 18px 18px 5px;
+    background:#f4b8cc; color:#39202b; font:700 .86rem 'Space Mono',monospace;
+    white-space:nowrap; opacity:0; visibility:hidden; pointer-events:none;
+    transform:translateY(5px) scale(.94); transform-origin:bottom left;
+    box-shadow:0 7px 17px #0005; transition:opacity .12s ease,transform .12s ease,visibility .12s;
+}
+.allie-hello::after {
+    content:""; position:absolute; left:9px; bottom:-6px; width:10px; height:9px;
+    background:#f4b8cc; clip-path:polygon(100% 0,0 100%,100% 70%);
+}
+.allie-stage:hover .allie-hello,.allie-stage:focus-within .allie-hello {
+    opacity:1; visibility:visible; transform:translateY(0) scale(1);
+}
+.allie-card-kicker { color:#f3a9c0; font:700 .58rem 'Space Mono',monospace; text-transform:uppercase; letter-spacing:2px; }
+.allie-card-title { color:#fff1f6; font-size:1.32rem; font-weight:800; margin:3px 0 2px; }
+.allie-card-copy { color:#d0c4ca; font-size:.95rem; line-height:1.55; }
+.allie-card-prompt { color:#f2b5ca; font:700 .76rem 'Space Mono',monospace; letter-spacing:.7px; margin-top:12px; }
+@keyframes allieFloat { 0%,100% { translate:0 0; } 50% { translate:0 -5px; } }
+@keyframes allieArmWave {
+    0%,100% { transform:rotate(0); }
+    22% { transform:rotate(-138deg); }
+    43% { transform:rotate(-112deg); }
+    65% { transform:rotate(-140deg); }
+    82% { transform:rotate(-110deg); }
+}
+
+@media (max-width: 850px) {
+    [class*="st-key-chat-shell"] { padding:11px; border-radius:18px; }
+    [class*="st-key-chat-history"] { padding:9px; }
+    [data-testid="stChatMessageContent"] { max-width:92%; padding:10px 12px; }
+    [data-testid="stChatMessageAvatarImage"] { width:34px !important;height:34px !important;min-width:34px !important; }
+    .allie-stage { width:145px; height:170px; }
+}
 
 /* ── reset / confirm buttons ── */
 [data-testid="stButton"] button {
@@ -459,6 +629,32 @@ def mins(m: int) -> str:
     h, r = divmod(m, 60)
     return f"{h}h {r}m" if r else f"{h}h"
 
+def render_chat_message(msg: dict) -> None:
+    role = msg["role"]
+    is_user = role == "user"
+    avatar = str(USER_AVATAR if is_user else ALLIE_AVATAR)
+    author = "You" if is_user else "Allie"
+    with st.chat_message(role, avatar=avatar):
+        st.markdown(f'<div class="message-author">{author}</div>', unsafe_allow_html=True)
+        st.markdown(msg["content"])
+
+        if not is_user:
+            actions = msg.get("actions", [])
+            if actions:
+                chips_html = '<div class="chips">'
+                for action in actions:
+                    text, cls = TOOL_CHIP.get(action.get("tool", ""), (f"⚙ {action.get('tool', '')}", "chip"))
+                    chips_html += f'<span class="{cls}">{text}</span>'
+                chips_html += "</div>"
+                st.markdown(chips_html, unsafe_allow_html=True)
+
+            content = msg["content"].lower()
+            if any(word in content for word in ("shortfall", "short by", "won't fit", "wont fit", "doesn't fit")):
+                st.markdown(
+                    '<div class="shortfall">⚠ schedule shortfall — some work may not fit in available time</div>',
+                    unsafe_allow_html=True,
+                )
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # session state
@@ -467,7 +663,15 @@ db.init()
 
 if "chat" not in st.session_state or isinstance(st.session_state.chat, assistant._UnavailableChat):
     st.session_state.chat = assistant.new_chat()
-if "messages"      not in st.session_state: st.session_state.messages      = []
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "allie_welcome_added" not in st.session_state:
+    if not st.session_state.messages:
+        st.session_state.messages.append({"role": "assistant", "content": WELCOME_MESSAGE, "actions": []})
+        st.session_state.allie_intro_wave = True
+    else:
+        st.session_state.allie_intro_wave = False
+    st.session_state.allie_welcome_added = True
 if "pending_reset" not in st.session_state: st.session_state.pending_reset = False
 if "xp"            not in st.session_state: st.session_state.xp            = 0
 if "focus_active"  not in st.session_state: st.session_state.focus_active  = False
@@ -478,7 +682,7 @@ if "focus_active"  not in st.session_state: st.session_state.focus_active  = Fal
 st.markdown("""
 <div class="topbar">
     <span class="topbar-logo">ϟ yap2slay</span>
-    <span class="topbar-tag">student life copilot</span>
+    <span class="topbar-tag">with allie · student life copilot</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -532,72 +736,68 @@ with left:
         st.session_state.focus_active = True
         st.rerun()
 
-    st.markdown('<p class="sec-head">// chat</p>', unsafe_allow_html=True)
+    with st.container(key="chat-shell"):
+        st.markdown("""
+<div class="chat-heading">
+  <div><div class="chat-heading-title">Your chat with Allie</div>
+  <div class="chat-heading-subtitle">study plans, tiny wins, deadline saves</div></div>
+  <div class="allie-online">ready to help</div>
+</div>
+""", unsafe_allow_html=True)
 
-    # --- render messages using native st.chat_message for proper layout ---
-    if not st.session_state.messages:
-        with st.chat_message("assistant"):
-            st.markdown("**Hey!** Tell me what's on your plate — exams, assignments, deadlines — and how much time you have. I'll build your schedule and fix it when life happens. 🗓️")
+        with st.container(key="chat-history", height=430, autoscroll=True):
+            for msg in st.session_state.messages:
+                render_chat_message(msg)
 
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-
-            if msg["role"] == "assistant":
-                actions = msg.get("actions", [])
-                if actions:
-                    chips_html = '<div class="chips">'
-                    for a in actions:
-                        text, cls = TOOL_CHIP.get(a.get("tool",""), (f"⚙ {a.get('tool','')}", "chip"))
-                        chips_html += f'<span class="{cls}">{text}</span>'
-                    chips_html += "</div>"
-                    st.markdown(chips_html, unsafe_allow_html=True)
-
-                content = msg["content"].lower()
-                if any(w in content for w in ("shortfall","short by","won't fit","wont fit","doesn't fit")):
+        pending_message = st.empty()
+        prompt = st.chat_input("Message Allie…", key="chat_prompt")
+        if prompt:
+            st.session_state.messages.append({"role": "user", "content": prompt, "actions": []})
+            with pending_message.container():
+                render_chat_message(st.session_state.messages[-1])
+                with st.chat_message("assistant", avatar=str(ALLIE_AVATAR)):
+                    st.markdown('<div class="message-author">Allie</div>', unsafe_allow_html=True)
                     st.markdown(
-                        '<div class="shortfall">⚠ schedule shortfall — some work may not fit in available time</div>',
-                        unsafe_allow_html=True
+                        '<div class="allie-typing" role="status" aria-label="Allie is thinking">'
+                        '<span class="typing-dots"><i></i><i></i><i></i></span></div>',
+                        unsafe_allow_html=True,
                     )
-
-    # --- chat input ---
-    prompt = st.chat_input("What's on your plate today?", key="chat_prompt")
-    if prompt:
-        st.session_state.messages.append({"role": "user", "content": prompt, "actions": []})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        with st.chat_message("assistant"):
-            with st.spinner("thinking…"):
-                result = assistant.send(st.session_state.chat, prompt)
-
-            reply   = result["reply"]
-            actions = result.get("actions", [])
-
-            st.markdown(reply)
-
-            if actions:
-                chips_html = '<div class="chips">'
-                for a in actions:
-                    text, cls = TOOL_CHIP.get(a.get("tool",""), (f"⚙ {a.get('tool','')}", "chip"))
-                    chips_html += f'<span class="{cls}">{text}</span>'
-                chips_html += "</div>"
-                st.markdown(chips_html, unsafe_allow_html=True)
-
-            if any(w in reply.lower() for w in ("shortfall","short by","won't fit","wont fit","doesn't fit")):
-                st.markdown(
-                    '<div class="shortfall">⚠ schedule shortfall — some work may not fit in available time</div>',
-                    unsafe_allow_html=True
-                )
-
-            st.session_state.messages.append({"role": "assistant", "content": reply, "actions": actions})
-
-        st.rerun()
+                    with st.spinner("Allie is thinking…"):
+                        result = assistant.send(st.session_state.chat, prompt)
+                    reply = result["reply"]
+                    actions = result.get("actions", [])
+                    st.markdown(reply)
+                    if actions:
+                        chips_html = '<div class="chips">'
+                        for action in actions:
+                            text, cls = TOOL_CHIP.get(action.get("tool", ""), (f"⚙ {action.get('tool', '')}", "chip"))
+                            chips_html += f'<span class="{cls}">{text}</span>'
+                        chips_html += "</div>"
+                        st.markdown(chips_html, unsafe_allow_html=True)
+                    if any(word in reply.lower() for word in ("shortfall", "short by", "won't fit", "wont fit", "doesn't fit")):
+                        st.markdown(
+                            '<div class="shortfall">⚠ schedule shortfall — some work may not fit in available time</div>',
+                            unsafe_allow_html=True,
+                        )
+                    st.session_state.messages.append({"role": "assistant", "content": reply, "actions": actions})
+            st.rerun()
 
 # ═════════════════════════════════════════════════════════════════════════════
 # RIGHT — SCHEDULE · TASKS · LOG
 # ═════════════════════════════════════════════════════════════════════════════
 with right:
+
+    wave_key = "allie-companion-wave" if st.session_state.get("allie_intro_wave", False) else "allie-companion-idle"
+    with st.container(key=wave_key):
+        allie_image, allie_copy = st.columns([1, 1.1], vertical_alignment="center")
+        with allie_image:
+            st.markdown(ALLIE_STAGE_MARKUP, unsafe_allow_html=True)
+        with allie_copy:
+            st.markdown('<div class="allie-card-kicker">your AI study buddy</div>', unsafe_allow_html=True)
+            st.markdown('<div class="allie-card-title">Allie ✨</div>', unsafe_allow_html=True)
+            st.markdown('<div class="allie-card-copy">We’ll make the plan, slay the goals, and romanticize the comeback when life starts tweaking. 💅✨</div>', unsafe_allow_html=True)
+            st.markdown('<div class="allie-card-prompt">HOVER TO SAY HI ↗</div>', unsafe_allow_html=True)
+    st.session_state.allie_intro_wave = False
 
     # reset button
     if st.button("↺ reset demo"):
@@ -610,7 +810,9 @@ with right:
             if st.button("yes, wipe it"):
                 db.reset()
                 st.session_state.chat          = assistant.new_chat()
-                st.session_state.messages      = []
+                st.session_state.messages      = [{"role": "assistant", "content": WELCOME_MESSAGE, "actions": []}]
+                st.session_state.allie_welcome_added = True
+                st.session_state.allie_intro_wave = True
                 st.session_state.pending_reset = False
                 st.rerun()
         with c2:
