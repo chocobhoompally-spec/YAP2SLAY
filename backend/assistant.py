@@ -131,7 +131,9 @@ def _make_client():
         return None
     try:
         from google import genai
-        client = genai.Client(api_key=key)
+        # This app uses an AI Studio/Gemini Developer API key. The SDK otherwise
+        # allows ambient GOOGLE_GENAI_USE_VERTEXAI settings to select Vertex AI.
+        client = genai.Client(api_key=key, vertexai=False)
         print("[assistant:init] Gemini client created")
         return client
     except Exception as e:

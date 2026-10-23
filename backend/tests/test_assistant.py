@@ -63,6 +63,22 @@ def test_initialization_failure_is_logged_without_key(monkeypatch, capsys):
     assert api_key not in reply
 
 
+def test_client_uses_gemini_api_even_when_vertex_environment_flags_are_set(monkeypatch):
+    monkeypatch.setenv("GOOGLE_GENAI_USE_VERTEXAI", "true")
+    monkeypatch.setenv("GOOGLE_GENAI_USE_ENTERPRISE", "true")
+    monkeypatch.setattr(
+        assistant,
+        "_setting",
+        lambda name, default="": "test-gemini-api-key" if name == "GEMINI_API_KEY" else default,
+    )
+
+    client = assistant._make_client()
+
+    assert client is not None
+    assert client._api_client.vertexai is False
+    assert client._api_client._http_options.base_url == "https://generativelanguage.googleapis.com/"
+
+
 def test_chat_creation_failure_is_logged(monkeypatch, capsys):
     api_key = "chat-creation-private-key"
     monkeypatch.setattr(assistant, "_setting", lambda name, default="": api_key)
